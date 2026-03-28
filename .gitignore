@@ -1,2 +1,10 @@
+# Project build outputs
 zone2
-zone2-macos-*
+zone2-*
+z
+
+# Common compiled binaries/libraries
+*.exe
+*.dll
+*.so
+*.dylib
