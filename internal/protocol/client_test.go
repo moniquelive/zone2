@@ -1,9 +1,10 @@
 package protocol
 
 import (
-	"bytes"
-	"strings"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func makeFrame(command, status byte, payload []byte) []byte {
@@ -24,17 +25,9 @@ func TestSplitFramesExtractsValidFrames(t *testing.T) {
 	msg = append(msg, frameB...)
 
 	frames := splitFrames(msg)
-	if len(frames) != 2 {
-		t.Fatalf("expected 2 frames, got %d", len(frames))
-	}
-
-	if !bytes.Equal(frames[0], frameA) {
-		t.Fatalf("first frame mismatch: got % X want % X", frames[0], frameA)
-	}
-
-	if !bytes.Equal(frames[1], frameB) {
-		t.Fatalf("second frame mismatch: got % X want % X", frames[1], frameB)
-	}
+	require.Len(t, frames, 2)
+	assert.Equal(t, frameA, frames[0])
+	assert.Equal(t, frameB, frames[1])
 }
 
 func TestSplitFramesStopsOnTruncatedFrame(t *testing.T) {
@@ -45,30 +38,17 @@ func TestSplitFramesStopsOnTruncatedFrame(t *testing.T) {
 	msg = append(msg, truncated...)
 
 	frames := splitFrames(msg)
-	if len(frames) != 1 {
-		t.Fatalf("expected 1 frame, got %d", len(frames))
-	}
-
-	if !bytes.Equal(frames[0], frameA) {
-		t.Fatalf("frame mismatch: got % X want % X", frames[0], frameA)
-	}
+	require.Len(t, frames, 1)
+	assert.Equal(t, frameA, frames[0])
 }
 
 func TestParseResponseSuccess(t *testing.T) {
 	msg := makeFrame(cmdZone2, 0x00, []byte{0x11, 0x22})
 
 	status, payload, err := parseResponse(msg, cmdZone2)
-	if err != nil {
-		t.Fatalf("parseResponse returned error: %v", err)
-	}
-
-	if status != 0x00 {
-		t.Fatalf("unexpected status: got 0x%02X", status)
-	}
-
-	if !bytes.Equal(payload, []byte{0x11, 0x22}) {
-		t.Fatalf("payload mismatch: got % X", payload)
-	}
+	require.NoError(t, err)
+	assert.Equal(t, byte(0x00), status)
+	assert.Equal(t, []byte{0x11, 0x22}, payload)
 }
 
 func TestParseResponseErrors(t *testing.T) {
@@ -87,13 +67,8 @@ func TestParseResponseErrors(t *testing.T) {
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
 			_, _, err := parseResponse(tc.msg, cmdZone2)
-			if err == nil {
-				t.Fatalf("expected error, got nil")
-			}
-
-			if !strings.Contains(err.Error(), tc.expects) {
-				t.Fatalf("unexpected error: got %q want substring %q", err.Error(), tc.expects)
-			}
+			require.Error(t, err)
+			assert.ErrorContains(t, err, tc.expects)
 		})
 	}
 }
