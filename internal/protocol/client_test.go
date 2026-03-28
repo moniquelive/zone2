@@ -77,31 +77,11 @@ func TestParseResponseErrors(t *testing.T) {
 		msg     []byte
 		expects string
 	}{
-		{
-			name:    "too short",
-			msg:     []byte{0x21, 0x01, cmdZone2},
-			expects: "response too short",
-		},
-		{
-			name:    "bad framing",
-			msg:     []byte{0x20, 0x01, cmdZone2, 0x00, 0x00, 0x0D},
-			expects: "bad framing",
-		},
-		{
-			name:    "unexpected command",
-			msg:     makeFrame(cmdMenu, 0x00, []byte{0x01}),
-			expects: "unexpected command",
-		},
-		{
-			name:    "missing terminator",
-			msg:     []byte{0x21, 0x01, cmdZone2, 0x00, 0x01, 0x99, 0x00},
-			expects: "missing terminator",
-		},
-		{
-			name:    "length mismatch",
-			msg:     []byte{0x21, 0x01, cmdZone2, 0x00, 0x02, 0x99, 0x0D},
-			expects: "length mismatch",
-		},
+		{name: "too short", msg: []byte{0x21, 0x01, cmdZone2}, expects: "response too short"},
+		{name: "bad framing", msg: []byte{0x20, 0x01, cmdZone2, 0x00, 0x00, 0x0D}, expects: "bad framing"},
+		{name: "unexpected command", msg: makeFrame(cmdMenu, 0x00, []byte{0x01}), expects: "unexpected command"},
+		{name: "missing terminator", msg: []byte{0x21, 0x01, cmdZone2, 0x00, 0x01, 0x99, 0x00}, expects: "missing terminator"},
+		{name: "length mismatch", msg: []byte{0x21, 0x01, cmdZone2, 0x00, 0x02, 0x99, 0x0D}, expects: "length mismatch"},
 	}
 
 	for _, tc := range tests {
