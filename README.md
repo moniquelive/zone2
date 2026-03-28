@@ -1,6 +1,6 @@
 # zone2
 
-Small Go CLI to control **Zone 2 power** on Arcam/AudioControl/JBL Synthesis receivers that expose the setup WebSocket API on port `50001`.
+I was tired of navigating into tiny menus on my receiver console so I created this small Go CLI to control **Zone 2 power** on Arcam/AudioControl/JBL Synthesis receivers that expose the setup WebSocket API on port `50001`.
 
 The tool supports:
 
@@ -36,7 +36,7 @@ Examples:
 
 Flags:
 
-- `-host` (default: `YOUR_AVR_IP`)
+- `-host` (required, e.g. `192.168.1.50`)
 - `-mode` (`on|off|toggle|status`)
 - `-timeout` (default: `4s`)
 - `-verify` (default: `20`, only used for writes)

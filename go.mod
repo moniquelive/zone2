@@ -1,4 +1,4 @@
-module zone2
+module github.com/moniquelive/zone2
 
 go 1.26.1
 
