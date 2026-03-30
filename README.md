@@ -11,10 +11,10 @@ The tool supports:
 
 ## Build
 
-Use the provided build script:
+Use the provided Makefile target:
 
 ```bash
-./build.sh
+make build
 ```
 
 It generates:
@@ -22,6 +22,18 @@ It generates:
 - `zone2` -> Linux ARM64 binary (for Home Assistant OS on Raspberry Pi 5)
 - `zone2-macos-arm64` -> local Apple Silicon test binary
 - `zone2-macos-amd64` -> local Intel macOS test binary
+
+To generate release-style artifacts in `dist/`:
+
+```bash
+make dist
+```
+
+To clean generated binaries:
+
+```bash
+make clean
+```
 
 ## Local usage
 
@@ -49,7 +61,7 @@ Flags:
 On your dev machine:
 
 ```bash
-./build.sh
+make build
 ```
 
 This creates `zone2` (Linux ARM64).
