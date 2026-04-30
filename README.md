@@ -1,6 +1,6 @@
 # zone2
 
-I was tired of navigating into tiny menus on my receiver console so I created this small Go CLI to control **Zone 2 power** on Arcam/AudioControl/JBL Synthesis receivers that expose the setup WebSocket API on port `50001`.
+I was tired of navigating into tiny menus on my receiver console so I created this small Go CLI to control **Zone 2 power** and selected AVR modes on Arcam/AudioControl/JBL Synthesis receivers that expose the setup WebSocket API on port `50001`.
 
 The tool supports:
 
@@ -8,6 +8,9 @@ The tool supports:
 - `off`
 - `toggle`
 - `status` (prints `on` or `off`)
+- `decode-on` (sets stereo Decode Mode to `5/7 Ch Stereo`)
+- `decode-off` (sets stereo Decode Mode to `Stereo`)
+- `decode-status` (prints `on` when stereo Decode Mode is `5/7 Ch Stereo`, otherwise `off`)
 
 ## Build
 
@@ -44,15 +47,20 @@ Examples:
 ./zone2-macos-arm64 -host YOUR_AVR_IP -mode on
 ./zone2-macos-arm64 -host YOUR_AVR_IP -mode off
 ./zone2-macos-arm64 -host YOUR_AVR_IP -mode toggle
+./zone2-macos-arm64 -host YOUR_AVR_IP -mode decode-status
+./zone2-macos-arm64 -host YOUR_AVR_IP -mode decode-on
+./zone2-macos-arm64 -host YOUR_AVR_IP -mode decode-off
 ```
 
 Flags:
 
 - `-host` (required, e.g. `192.168.1.50`)
-- `-mode` (`on|off|toggle|status`)
+- `-mode` (`on|off|toggle|status|decode-on|decode-off|decode-status`)
 - `-timeout` (default: `4s`)
 - `-verify` (default: `20`, only used for writes)
 - `-verbose` (prints raw TX/RX frames)
+
+Decode mode commands act on the live stereo `Decode Mode` field. The tool reads the current decode mode, calculates the remaining `MODE` button presses in the AVR's cycle, sends one press at a time, and verifies each state transition before continuing. These commands require the current incoming audio to be stereo.
 
 ## Home Assistant OS (native on Raspberry Pi 5)
 
@@ -88,6 +96,9 @@ chmod +x /config/bin/zone2
 /config/bin/zone2 -host YOUR_AVR_IP -mode status -timeout 4s
 /config/bin/zone2 -host YOUR_AVR_IP -mode on -timeout 4s -verify 20
 /config/bin/zone2 -host YOUR_AVR_IP -mode off -timeout 4s -verify 20
+/config/bin/zone2 -host YOUR_AVR_IP -mode decode-status -timeout 4s
+/config/bin/zone2 -host YOUR_AVR_IP -mode decode-on -timeout 4s -verify 20
+/config/bin/zone2 -host YOUR_AVR_IP -mode decode-off -timeout 4s -verify 20
 ```
 
 ### 4) Add a switch entity in `configuration.yaml`
@@ -100,6 +111,14 @@ command_line:
       command_on: "/config/bin/zone2 -host YOUR_AVR_IP -mode on -timeout 4s -verify 20"
       command_off: "/config/bin/zone2 -host YOUR_AVR_IP -mode off -timeout 4s -verify 20"
       command_state: "/config/bin/zone2 -host YOUR_AVR_IP -mode status -timeout 4s"
+      value_template: "{{ value | trim | lower == 'on' }}"
+      scan_interval: 10
+  - switch:
+      name: AVR 5/7 Ch Stereo
+      unique_id: avr_5_7_ch_stereo
+      command_on: "/config/bin/zone2 -host YOUR_AVR_IP -mode decode-on -timeout 4s -verify 20"
+      command_off: "/config/bin/zone2 -host YOUR_AVR_IP -mode decode-off -timeout 4s -verify 20"
+      command_state: "/config/bin/zone2 -host YOUR_AVR_IP -mode decode-status -timeout 4s"
       value_template: "{{ value | trim | lower == 'on' }}"
       scan_interval: 10
 ```

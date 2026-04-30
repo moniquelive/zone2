@@ -72,3 +72,50 @@ func TestParseResponseErrors(t *testing.T) {
 		})
 	}
 }
+
+func TestDecodeModeState(t *testing.T) {
+	assert.Equal(t, "on", DecodeModeState(DecodeFiveSevenChStereo))
+	assert.Equal(t, "off", DecodeModeState(DecodeStereo))
+	assert.Equal(t, "off", DecodeModeState(0x04))
+}
+
+func TestStereoDecodeModeName(t *testing.T) {
+	assert.Equal(t, "Stereo", StereoDecodeModeName(DecodeStereo))
+	assert.Equal(t, "5/7 Ch Stereo", StereoDecodeModeName(DecodeFiveSevenChStereo))
+	assert.Equal(t, "---", StereoDecodeModeName(0xFF))
+}
+
+func TestStereoDecodeModePresses(t *testing.T) {
+	tests := []struct {
+		name    string
+		current byte
+		target  byte
+		presses int
+	}{
+		{name: "already target", current: 0x09, target: 0x09, presses: 0},
+		{name: "next mode", current: 0x01, target: 0x09, presses: 1},
+		{name: "wrap to stereo", current: 0x09, target: 0x01, presses: 6},
+		{name: "dolby surround to channel stereo", current: 0x04, target: 0x09, presses: 6},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			presses, ok := StereoDecodeModePresses(tc.current, tc.target)
+			require.True(t, ok)
+			assert.Equal(t, tc.presses, presses)
+		})
+	}
+}
+
+func TestStereoDecodeModePressesUnknownMode(t *testing.T) {
+	_, ok := StereoDecodeModePresses(0xFF, DecodeFiveSevenChStereo)
+	assert.False(t, ok)
+}
+
+func TestIsStereoChannelConfig(t *testing.T) {
+	assert.True(t, IsStereoChannelConfig(0x02))
+	assert.True(t, IsStereoChannelConfig(0x0E))
+	assert.True(t, IsStereoChannelConfig(0x0F))
+	assert.False(t, IsStereoChannelConfig(0x0A))
+	assert.False(t, IsStereoChannelConfig(0x21))
+}

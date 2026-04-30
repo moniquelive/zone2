@@ -10,9 +10,33 @@ import (
 )
 
 const (
-	cmdZone2 = 0x2F
-	cmdMenu  = 0x14
+	cmdRemote         = 0x08
+	cmdStereoDecode   = 0x10
+	cmdMenu           = 0x14
+	cmdIncomingFormat = 0x43
+	cmdZone2          = 0x2F
+
+	decodeStereo            = 0x01
+	decodeFiveSevenChStereo = 0x09
+	remoteMainZone          = 0x10
+	remoteDecodeModeNext    = 0x20
+	channelConfigStereo     = 0x02
+	channelConfigStereoAltA = 0x0E
+	channelConfigStereoAltB = 0x0F
 )
+
+const DecodeStereo = decodeStereo
+const DecodeFiveSevenChStereo = decodeFiveSevenChStereo
+
+var stereoDecodeModeCycle = []byte{
+	0x01, // Stereo
+	0x09, // 5/7 Ch Stereo
+	0x04, // Dolby Surround
+	0x0A, // DTS Neural:X
+	0x0F, // Auro-Matic 3D
+	0x10, // Auro-2D
+	0x0E, // Auro Native
+}
 
 type Client struct {
 	conn    *websocket.Conn
@@ -29,6 +53,72 @@ func Zone2State(status byte) string {
 	}
 
 	return "off"
+}
+
+func DecodeModeState(mode byte) string {
+	if mode == DecodeFiveSevenChStereo {
+		return "on"
+	}
+
+	return "off"
+}
+
+func StereoDecodeModeName(mode byte) string {
+	switch mode {
+	case 0x01:
+		return "Stereo"
+	case 0x04:
+		return "Dolby Surround"
+	case 0x07:
+		return "Neo:6 Cinema"
+	case 0x08:
+		return "Neo:6 Music"
+	case 0x09:
+		return "5/7 Ch Stereo"
+	case 0x0A:
+		return "DTS Neural:X"
+	case 0x0B:
+		return "Logic 16 Immersion"
+	case 0x0C:
+		return "DTS Virtual:X"
+	case 0x0D:
+		return "Dolby Virtual Height"
+	case 0x0E:
+		return "Auro Native"
+	case 0x0F:
+		return "Auro-Matic 3D"
+	case 0x10:
+		return "Auro-2D"
+	default:
+		return "---"
+	}
+}
+
+func IsStereoChannelConfig(channel byte) bool {
+	return channel == channelConfigStereo || channel == channelConfigStereoAltA || channel == channelConfigStereoAltB
+}
+
+func StereoDecodeModePresses(current, target byte) (int, bool) {
+	currentIndex := -1
+	targetIndex := -1
+	for i, mode := range stereoDecodeModeCycle {
+		if mode == current {
+			currentIndex = i
+		}
+		if mode == target {
+			targetIndex = i
+		}
+	}
+
+	if currentIndex == -1 || targetIndex == -1 {
+		return 0, false
+	}
+
+	if targetIndex >= currentIndex {
+		return targetIndex - currentIndex, true
+	}
+
+	return len(stereoDecodeModeCycle) - currentIndex + targetIndex, true
 }
 
 func (c *Client) QueryMenuState(timeout time.Duration) (byte, error) {
@@ -52,6 +142,58 @@ func (c *Client) QueryMenuState(timeout time.Duration) (byte, error) {
 
 	if len(payload) < 1 {
 		return 0, fmt.Errorf("menu payload too short")
+	}
+
+	return payload[0], nil
+}
+
+func (c *Client) QueryIncomingAudioFormat(timeout time.Duration) (byte, byte, error) {
+	if err := c.sendCommand(cmdIncomingFormat, []byte{0xF0}); err != nil {
+		return 0, 0, err
+	}
+
+	msg, err := c.readMessageForCommand(cmdIncomingFormat, timeout)
+	if err != nil {
+		return 0, 0, err
+	}
+
+	status, payload, err := parseResponse(msg, cmdIncomingFormat)
+	if err != nil {
+		return 0, 0, err
+	}
+
+	if status != 0x00 {
+		return 0, 0, fmt.Errorf("incoming format query failed: status=0x%02X", status)
+	}
+
+	if len(payload) < 2 {
+		return 0, 0, fmt.Errorf("incoming format payload too short: %d", len(payload))
+	}
+
+	return payload[0], payload[1], nil
+}
+
+func (c *Client) QueryStereoDecodeMode(timeout time.Duration) (byte, error) {
+	if err := c.sendCommand(cmdStereoDecode, []byte{0xF0}); err != nil {
+		return 0, err
+	}
+
+	msg, err := c.readMessageForCommand(cmdStereoDecode, timeout)
+	if err != nil {
+		return 0, err
+	}
+
+	status, payload, err := parseResponse(msg, cmdStereoDecode)
+	if err != nil {
+		return 0, err
+	}
+
+	if status != 0x00 {
+		return 0, fmt.Errorf("stereo decode query failed: status=0x%02X", status)
+	}
+
+	if len(payload) < 1 {
+		return 0, fmt.Errorf("stereo decode payload too short")
 	}
 
 	return payload[0], nil
@@ -132,6 +274,62 @@ func (c *Client) SetZone2Status(current [6]byte, target byte, timeout time.Durat
 	}
 
 	return last, fmt.Errorf("zone2 write did not stick (expected=%s got=%s)", Zone2State(target), Zone2State(last[1]))
+}
+
+func (c *Client) SetStereoDecodeMode(current byte, target byte, timeout time.Duration, verifyAttempts int) (byte, error) {
+	if current == target {
+		return current, nil
+	}
+
+	if verifyAttempts < 1 {
+		verifyAttempts = 1
+	}
+
+	last := current
+	for step := 0; step < len(stereoDecodeModeCycle); step++ {
+		presses, ok := StereoDecodeModePresses(last, target)
+		if !ok {
+			return last, fmt.Errorf("cannot calculate decode mode cycle from %s to %s", StereoDecodeModeName(last), StereoDecodeModeName(target))
+		}
+
+		if presses == 0 {
+			return last, nil
+		}
+
+		updated, err := c.advanceStereoDecodeMode(last, timeout, verifyAttempts)
+		if err != nil {
+			return last, err
+		}
+
+		last = updated
+	}
+
+	return last, fmt.Errorf("decode mode did not reach %s (got %s)", StereoDecodeModeName(target), StereoDecodeModeName(last))
+}
+
+func (c *Client) advanceStereoDecodeMode(current byte, timeout time.Duration, attempts int) (byte, error) {
+	last := current
+
+	for attempt := 0; attempt < attempts; attempt++ {
+		if err := c.sendCommand(cmdRemote, []byte{remoteMainZone, remoteDecodeModeNext}); err != nil {
+			return last, err
+		}
+
+		for poll := 0; poll < 4; poll++ {
+			time.Sleep(500 * time.Millisecond)
+			updated, err := c.QueryStereoDecodeMode(timeout)
+			if err != nil {
+				continue
+			}
+
+			last = updated
+			if updated != current {
+				return updated, nil
+			}
+		}
+	}
+
+	return last, fmt.Errorf("decode mode did not advance from %s", StereoDecodeModeName(current))
 }
 
 func (c *Client) sendRaw(payload []byte) error {
