@@ -15,7 +15,7 @@ import (
 
 func main() {
 	host := flag.String("host", "", "AVR host/IP")
-	mode := flag.String("mode", "toggle", "on|off|toggle|status|decode-on|decode-off|decode-status")
+	mode := flag.String("mode", "toggle", "on|off|toggle|status|main-status|decode-on|decode-off|decode-status")
 	timeout := flag.Duration("timeout", 4*time.Second, "Socket timeout")
 	verifyAttempts := flag.Int("verify", 20, "Verification attempts after a write")
 	verbose := flag.Bool("verbose", false, "Print raw RX/TX frames")
@@ -36,6 +36,13 @@ func main() {
 	operation := strings.ToLower(strings.TrimSpace(*mode))
 
 	switch operation {
+	case "main-status":
+		state, err := client.QueryMainPower(*timeout)
+		if err != nil {
+			log.Fatal(err)
+		}
+		fmt.Println(protocol.PowerState(state))
+		return
 	case "decode-status":
 		state, err := queryDecodeSwitchState(client, *timeout)
 		if err != nil {
@@ -90,7 +97,7 @@ func main() {
 			target = 0
 		}
 	default:
-		log.Fatal("mode must be on|off|toggle|status|decode-on|decode-off|decode-status")
+		log.Fatal("mode must be on|off|toggle|status|main-status|decode-on|decode-off|decode-status")
 	}
 
 	updated, err := client.SetZone2Status(model, target, *timeout, *verifyAttempts)

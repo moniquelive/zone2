@@ -79,6 +79,12 @@ func TestDecodeModeState(t *testing.T) {
 	assert.Equal(t, "off", DecodeModeState(0x04))
 }
 
+func TestPowerState(t *testing.T) {
+	assert.Equal(t, "on", PowerState(1))
+	assert.Equal(t, "off", PowerState(0))
+	assert.Equal(t, "off", PowerState(2))
+}
+
 func TestStereoDecodeModeName(t *testing.T) {
 	assert.Equal(t, "Stereo", StereoDecodeModeName(DecodeStereo))
 	assert.Equal(t, "5/7 Ch Stereo", StereoDecodeModeName(DecodeFiveSevenChStereo))

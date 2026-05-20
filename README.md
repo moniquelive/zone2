@@ -8,6 +8,7 @@ The tool supports:
 - `off`
 - `toggle`
 - `status` (prints `on` or `off`)
+- `main-status` (prints `on` or `off` for the main zone power)
 - `decode-on` (sets stereo Decode Mode to `5/7 Ch Stereo`)
 - `decode-off` (sets stereo Decode Mode to `Stereo`)
 - `decode-status` (prints `on` when stereo Decode Mode is `5/7 Ch Stereo`, otherwise `off`)
@@ -44,6 +45,7 @@ Examples:
 
 ```bash
 ./zone2-macos-arm64 -host YOUR_AVR_IP -mode status
+./zone2-macos-arm64 -host YOUR_AVR_IP -mode main-status
 ./zone2-macos-arm64 -host YOUR_AVR_IP -mode on
 ./zone2-macos-arm64 -host YOUR_AVR_IP -mode off
 ./zone2-macos-arm64 -host YOUR_AVR_IP -mode toggle
@@ -55,7 +57,7 @@ Examples:
 Flags:
 
 - `-host` (required, e.g. `192.168.1.50`)
-- `-mode` (`on|off|toggle|status|decode-on|decode-off|decode-status`)
+- `-mode` (`on|off|toggle|status|main-status|decode-on|decode-off|decode-status`)
 - `-timeout` (default: `4s`)
 - `-verify` (default: `20`, only used for writes)
 - `-verbose` (prints raw TX/RX frames)
@@ -94,6 +96,7 @@ chmod +x /config/bin/zone2
 
 ```bash
 /config/bin/zone2 -host YOUR_AVR_IP -mode status -timeout 4s
+/config/bin/zone2 -host YOUR_AVR_IP -mode main-status -timeout 4s
 /config/bin/zone2 -host YOUR_AVR_IP -mode on -timeout 4s -verify 20
 /config/bin/zone2 -host YOUR_AVR_IP -mode off -timeout 4s -verify 20
 /config/bin/zone2 -host YOUR_AVR_IP -mode decode-status -timeout 4s

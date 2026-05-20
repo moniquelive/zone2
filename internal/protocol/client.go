@@ -10,6 +10,7 @@ import (
 )
 
 const (
+	cmdMainPower      = 0x00
 	cmdRemote         = 0x08
 	cmdStereoDecode   = 0x10
 	cmdMenu           = 0x14
@@ -48,6 +49,14 @@ func NewClient(conn *websocket.Conn, verbose bool) *Client {
 }
 
 func Zone2State(status byte) string {
+	if status == 1 {
+		return "on"
+	}
+
+	return "off"
+}
+
+func PowerState(status byte) string {
 	if status == 1 {
 		return "on"
 	}
@@ -171,6 +180,32 @@ func (c *Client) QueryIncomingAudioFormat(timeout time.Duration) (byte, byte, er
 	}
 
 	return payload[0], payload[1], nil
+}
+
+func (c *Client) QueryMainPower(timeout time.Duration) (byte, error) {
+	if err := c.sendCommand(cmdMainPower, []byte{0xF0}); err != nil {
+		return 0, err
+	}
+
+	msg, err := c.readMessageForCommand(cmdMainPower, timeout)
+	if err != nil {
+		return 0, err
+	}
+
+	status, payload, err := parseResponse(msg, cmdMainPower)
+	if err != nil {
+		return 0, err
+	}
+
+	if status != 0x00 {
+		return 0, fmt.Errorf("main power query failed: status=0x%02X", status)
+	}
+
+	if len(payload) < 1 {
+		return 0, fmt.Errorf("main power payload too short")
+	}
+
+	return payload[0], nil
 }
 
 func (c *Client) QueryStereoDecodeMode(timeout time.Duration) (byte, error) {
