@@ -237,7 +237,7 @@ func (c *Client) QueryStereoDecodeMode(timeout time.Duration) (byte, error) {
 func (c *Client) QueryZone2Model(timeout time.Duration) ([6]byte, error) {
 	var model [6]byte
 
-	for attempt := 0; attempt < 5; attempt++ {
+	for range 5 {
 		if err := c.sendCommand(cmdZone2, []byte{0xF0}); err != nil {
 			return model, err
 		}
@@ -321,7 +321,7 @@ func (c *Client) SetStereoDecodeMode(current byte, target byte, timeout time.Dur
 	}
 
 	last := current
-	for step := 0; step < len(stereoDecodeModeCycle); step++ {
+	for range stereoDecodeModeCycle {
 		presses, ok := StereoDecodeModePresses(last, target)
 		if !ok {
 			return last, fmt.Errorf("cannot calculate decode mode cycle from %s to %s", StereoDecodeModeName(last), StereoDecodeModeName(target))
@@ -345,12 +345,12 @@ func (c *Client) SetStereoDecodeMode(current byte, target byte, timeout time.Dur
 func (c *Client) advanceStereoDecodeMode(current byte, timeout time.Duration, attempts int) (byte, error) {
 	last := current
 
-	for attempt := 0; attempt < attempts; attempt++ {
+	for range attempts {
 		if err := c.sendCommand(cmdRemote, []byte{remoteMainZone, remoteDecodeModeNext}); err != nil {
 			return last, err
 		}
 
-		for poll := 0; poll < 4; poll++ {
+		for range 4 {
 			time.Sleep(500 * time.Millisecond)
 			updated, err := c.QueryStereoDecodeMode(timeout)
 			if err != nil {
