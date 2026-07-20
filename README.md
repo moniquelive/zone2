@@ -15,10 +15,11 @@ The tool supports:
 
 ## Build
 
-Use the provided Makefile target:
+Install the pinned Go version and build all supported binaries with mise:
 
 ```bash
-make build
+mise install
+mise run build
 ```
 
 It generates:
@@ -30,13 +31,23 @@ It generates:
 To generate release-style artifacts in `dist/`:
 
 ```bash
-make dist
+mise run dist
 ```
 
 To clean generated binaries:
 
 ```bash
-make clean
+mise run clean
+```
+
+Other development tasks:
+
+```bash
+mise run format
+mise run format-check
+mise run test
+mise run vet
+mise run ci
 ```
 
 ## Local usage
@@ -71,7 +82,7 @@ Decode mode commands act on the live stereo `Decode Mode` field. The tool reads 
 On your dev machine:
 
 ```bash
-make build
+mise run build
 ```
 
 This creates `zone2` (Linux ARM64).
