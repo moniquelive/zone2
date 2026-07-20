@@ -14,18 +14,11 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v5
 
-      - name: Setup Go
-        uses: actions/setup-go@v6
-        with:
-          go-version-file: go.mod
+      - name: Setup mise
+        uses: jdx/mise-action@v3
 
-      - name: Run tests
-        run: go test ./...
+      - name: Run CI tasks
+        run: mise run ci
 
-      - name: Run vet
-        run: go vet ./...
-
-      - name: Verify Makefile targets
-        run: |
-          make dist
-          make clean
+      - name: Verify clean task
+        run: mise run clean

@@ -15,14 +15,11 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v5
 
-      - name: Setup Go
-        uses: actions/setup-go@v6
-        with:
-          go-version-file: go.mod
+      - name: Setup mise
+        uses: jdx/mise-action@v3
 
       - name: Build release binaries
-        run: |
-          make dist
+        run: mise run dist
 
       - name: Create GitHub release
         uses: softprops/action-gh-release@v3
