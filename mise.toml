@@ -1,0 +1,56 @@
+[tools]
+go = "1.26.1"
+
+[tasks.format]
+description = "Format Go source files"
+run = "gofmt -w ."
+
+[tasks.format-check]
+description = "Check Go source formatting"
+run = '''
+files="$(gofmt -l .)"
+test -z "$files" || { printf '%s\n' "$files"; exit 1; }
+'''
+
+[tasks.test]
+description = "Run tests with the race detector"
+run = "go test -race ./..."
+
+[tasks.vet]
+description = "Run Go static analysis"
+run = "go vet ./..."
+
+[tasks."build:linux-arm64"]
+description = "Build the Linux ARM64 binary"
+run = "CGO_ENABLED=0 GOOS=linux GOARCH=arm64 go build -trimpath -ldflags='-s -w' -o zone2 zone2.go"
+
+[tasks."build:macos-arm64"]
+description = "Build the macOS ARM64 binary"
+run = "CGO_ENABLED=0 GOOS=darwin GOARCH=arm64 go build -trimpath -ldflags='-s -w' -o zone2-macos-arm64 zone2.go"
+
+[tasks."build:macos-amd64"]
+description = "Build the macOS AMD64 binary"
+run = "CGO_ENABLED=0 GOOS=darwin GOARCH=amd64 go build -trimpath -ldflags='-s -w' -o zone2-macos-amd64 zone2.go"
+
+[tasks.build]
+description = "Build all supported binaries"
+depends = ["build:linux-arm64", "build:macos-arm64", "build:macos-amd64"]
+
+[tasks.dist]
+description = "Build release artifacts in dist"
+depends = ["build"]
+run = '''
+rm -rf dist
+mkdir -p dist
+cp zone2 dist/zone2-linux-arm64
+cp zone2-macos-arm64 dist/zone2-macos-arm64
+cp zone2-macos-amd64 dist/zone2-macos-amd64
+'''
+
+[tasks.clean]
+description = "Remove generated binaries and release artifacts"
+run = "rm -rf dist zone2 zone2-macos-arm64 zone2-macos-amd64"
+
+[tasks.ci]
+description = "Run all validation and build release artifacts"
+depends = ["format-check", "test", "vet", "dist"]
